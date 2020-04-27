@@ -8,10 +8,11 @@ I used code from bitluni to learn the web interface and prepare the base for fut
 * All settings in EEPROM
 * 3 sets of settings available to store/load on demand
 * AutoStart
-* WiFi Station & AP Wifi can be disable while running
+* WiFi Station & AP Wifi 
+* WiFi can be disable while running
 * Memory information and management
 * SDCard can be initialize while running
-* LED Flash is OFF
+* LED Flash fully configurable
 
 ## Configure
 * All parameters from the web interface
