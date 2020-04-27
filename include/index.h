@@ -356,6 +356,13 @@ R"(<!doctype html>
 						<button id="get-still-save">Get Still & Save</button>
 						<button id="toggle-lapse">Start Time-Lapse</button>
 					</section>
+					<div class="input-group" id="forceFlash-group">
+						<label for="forceFlash">Force flash LED</label>
+						<div class="switch">
+							<input id="forceFlash" type="checkbox" class="default-action">
+							<label class="slider" for="forceFlash"></label>
+						</div>
+					</div>
 				</nav>
 			</div>
 		</div>
@@ -364,7 +371,7 @@ R"(<!doctype html>
 				<div class="close" id="close-stream">×</div>
 				<img id="stream" src="">
 			</div>
-		</figure>
+		</figure>		
 	</section>
 	<section class="main">
 		<div id="logo">
@@ -535,6 +542,13 @@ R"(<!doctype html>
 							<label class="slider" for="dcw"></label>
 						</div>
 					</div>
+					<div class="input-group" id="flash-group">
+						<label for="flash">Flash LED</label>
+						<div class="switch">
+							<input id="flash" type="checkbox" class="default-action">
+							<label class="slider" for="flash"></label>
+						</div>
+					</div>
 					<section id="buttons">
 						<button id="savecfg1">Save 1</button>
 						<button id="savecfg2">Save 2</button>
@@ -601,7 +615,7 @@ R"(<!doctype html>
 					</div>
 					<div class="input-group" id="WiFiAPSSID-group">
 						<label for="WiFiAPSSID">WiFi AP SSID</label>
-						<input type="label" id="WiFiAPSSID" value="undefined" class="default-action">
+						<input type="text" id="WiFiAPSSID" value="undefined" class="default-action">
 					</div>
 					<div class="input-group" id="WiFiAPPW-group">
 						<label for="WiFiAPPW">WiFi AP PW</label>

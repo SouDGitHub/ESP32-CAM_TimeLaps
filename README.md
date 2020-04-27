@@ -15,7 +15,7 @@ I used code from bitluni to learn the web interface and prepare the base for fut
 
 ## Configure
 * All parameters from the web interface
-* Select/comment camera pinout in `include\pins_camera.h` according to your board
+* Select/comment camera board in `src\camera.cpp` according to your board
 * According to your camera behavior, set the camera frequency in camera.h "config.xclk_freq_hz" to get good images. Mine works at 5MHz.
 
 ## Create video from img using W10 Photo
@@ -28,7 +28,6 @@ I used code from bitluni to learn the web interface and prepare the base for fut
 [JackGruber/ESP32-Timelaps-Webcam](https://github.com/JackGruber/ESP32-Timelaps-Webcam)
 
 ## To Do
-* Add control for the LED Flash
 * Add embedded picture rotation
 * Add control and command for servos (sun tracking)
 * Add camera frequency in settings

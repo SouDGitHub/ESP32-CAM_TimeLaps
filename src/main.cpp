@@ -4,10 +4,10 @@
 #include "camera.h"
 #include "lapse.h"
 #include "cfg_eeprom.h"
+#include "flashLED.h"
+#include "app_httpd.h"
 
-#define connectionTimeOut_s 10
-
-void startCameraServer();
+#define CONNECT_TIME_OUT_SECOND 10
 
 void setup()
 {
@@ -16,13 +16,14 @@ void setup()
 	Serial.println();
 
 	initFileSystem();
-
-	InitCfgFromEEPROM();
+	initFlashLED();
+	initCfgFromEEPROM();
 	initCamera();
 
 	cfg_struct* current_cfg = get_current_cfg();
 	setInterval(current_cfg->TimeLapsDelta);
 	loadCAMX(current_cfg->AutoStartCFG);
+	lockFlashON(current_cfg->forceFlash,current_cfg->forceFlash);
 
 	int counter_s = 0;
 	if(!current_cfg->StartAPOnly)
@@ -30,7 +31,7 @@ void setup()
 		Serial.print("\nTrying to connected to SSID = ");
 		Serial.println(current_cfg->WiFi_ssid);			
 		WiFi.begin(current_cfg->WiFi_ssid.c_str(), current_cfg->WiFi_pw.c_str());
-		while (WiFi.status() != WL_CONNECTED && counter_s < connectionTimeOut_s)
+		while (WiFi.status() != WL_CONNECTED && counter_s < CONNECT_TIME_OUT_SECOND)
 		{
 			delay(1000);
 			counter_s += 1;
@@ -50,7 +51,7 @@ void setup()
 			Serial.println(current_cfg->WiFi_ssid);			
 		}
 	}
-	if(current_cfg->StartAPOnly || counter_s == connectionTimeOut_s)
+	if(current_cfg->StartAPOnly || counter_s == CONNECT_TIME_OUT_SECOND)
 	{		
 		Serial.println("\nStarting AP Mode");
 		WiFi.softAP(current_cfg->AP_WiFi_ssid.c_str(), current_cfg->AP_WiFi_pw.c_str());	

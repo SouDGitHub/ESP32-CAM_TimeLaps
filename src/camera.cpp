@@ -1,4 +1,3 @@
-#include "Arduino.h"
 #include "camera.h"
 // WARNING!!! Make sure that you have either selected ESP32 Wrover Module, or another board which has PSRAM enabled
 // Select camera model
@@ -38,7 +37,7 @@ bool initCamera()
 	{
 		config.frame_size = FRAMESIZE_UXGA;
 		config.jpeg_quality = 10;
-		config.fb_count = 2;
+		config.fb_count = 1;
 	}
 	else
 	{

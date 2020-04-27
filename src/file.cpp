@@ -54,8 +54,6 @@ bool initFileSystem()
 		Serial.println("Card Mount Failed");
 		return false;
 	}
-	pinMode(4, OUTPUT); //stop flash
-	digitalWrite(4, 0);
 	uint8_t cardType = SD_MMC.cardType();
 
 	if (cardType == CARD_NONE)

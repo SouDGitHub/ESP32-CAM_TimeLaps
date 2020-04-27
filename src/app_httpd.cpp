@@ -11,18 +11,18 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-// modifed by bitluni 2020
-
 #include "file.h"
 #include "esp_http_server.h"
 #include "esp_timer.h"
 #include "esp_camera.h"
 #include "Arduino.h"
 #include "lapse.h"
-#include "cfg_eeprom.h"
 #include "file.h"
 #include <WiFi.h>
+#include "flashLED.h"
+#include "cfg_eeprom.h"
+
+#include "app_httpd.h"
 
 const char *indexHtml =
 #include "index.h"
@@ -62,7 +62,12 @@ static esp_err_t capture_handler(httpd_req_t *req)
 	camera_fb_t *fb = NULL;
 	esp_err_t res = ESP_OK;
 
+	cfg_struct* current_cfg = get_current_cfg();
+	setFlashLED(current_cfg->flash);
+	delay(300);
 	fb = esp_camera_fb_get();
+	setFlashLED(0);
+
 	if (!fb)
 	{
 		Serial.println("Camera capture failed");
@@ -95,8 +100,13 @@ static esp_err_t capture_save_handler(httpd_req_t *req)
 {
 	camera_fb_t *fb = NULL;
 	esp_err_t res = ESP_OK;
-
+			
+	cfg_struct* current_cfg = get_current_cfg();
+	setFlashLED(current_cfg->flash);
+	delay(300);
 	fb = esp_camera_fb_get();
+	setFlashLED(0);
+
 	if (!fb)
 	{
 		Serial.println("Camera capture failed");
@@ -117,6 +127,7 @@ static esp_err_t capture_save_handler(httpd_req_t *req)
 	}
 	Serial.println(path);
 	writeFile(path, (const unsigned char *)fb->buf, fb->len);
+	setFlashLED(0);
 
 	httpd_resp_set_type(req, "image/jpeg");
 	httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
@@ -136,6 +147,7 @@ static esp_err_t capture_save_handler(httpd_req_t *req)
 		fb_len = jchunk.len;
 	}
 	esp_camera_fb_return(fb);
+	
 	return res;
 }
 
@@ -149,6 +161,7 @@ static esp_err_t streamHandler(httpd_req_t *req)
 	if (res != ESP_OK)
 		return res;
 	httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+	
 	do
 	{
 		fb = esp_camera_fb_get();
@@ -356,6 +369,21 @@ static esp_err_t cmd_handler(httpd_req_t *req)
 		{
 			current_cfg->AutoStartCFG = val;
 		}
+		else if (!strcmp(variable,"forceFlash")){
+			current_cfg->forceFlash = val;
+			lockFlashON(val,val);
+		}
+		// else if (!strcmp(variable,"forceFlashThresh")){
+		// 	current_cfg->forceFlashThresh = val;
+		// 	if (current_cfg->forceFlash)
+		// 		lockFlashON(1,current_cfg->forceFlashThresh);
+		// }
+		else if (!strcmp(variable,"flash")){
+			current_cfg->flash = val;
+		}
+		// else if (!strcmp(variable,"FlashThresh")){
+		// 	current_cfg->flashThresh = val;
+		// }
 		else
 		{
 			res = -1;
@@ -417,8 +445,12 @@ static esp_err_t status_handler(httpd_req_t *req)
 	p += sprintf(p, "\"WiFiAPPW\":\"%s\",", current_cfg->AP_WiFi_pw.c_str());
 	p += sprintf(p, "\"WiFiSSID\":\"%s\",", current_cfg->WiFi_ssid.c_str());
 	p += sprintf(p, "\"WiFiPW\":\"%s\",", current_cfg->WiFi_pw.c_str());
-	p += sprintf(p, "\"WiFiAPOnly\":%u,", current_cfg->StartAPOnly);String getCardType();
-		
+	p += sprintf(p, "\"WiFiAPOnly\":%u,", current_cfg->StartAPOnly);
+	p += sprintf(p, "\"forceFlash\":%u,", current_cfg->forceFlash);
+	//p += sprintf(p, "\"forceFlashThresh\":%u,", current_cfg->forceFlashThresh);
+	p += sprintf(p, "\"flash\":%u,", current_cfg->flash);
+	//p += sprintf(p, "\"flashThresh\":%u,", current_cfg->flashThresh);
+	
 		uint8_t cardType = SD_MMC.cardType();
 		if (cardType == CARD_NONE)
 			sprintf(myLabel,"No SD card");

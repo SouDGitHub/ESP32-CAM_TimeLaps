@@ -1,14 +1,12 @@
-#include "Arduino.h"
-#include "camera.h"
-#include <stdio.h>
-#include "file.h"
+#include "lapse.h"
+#include "cfg_eeprom.h"
 
-unsigned long fileIndex = 0;
-unsigned long lapseIndex = 0;
-unsigned long frameInterval = 2000;
-bool mjpeg = true;
-bool lapseRunning = false;
-unsigned long lastFrameDelta = 0;
+static unsigned long fileIndex = 0;
+static unsigned long lapseIndex = 0;
+static unsigned long frameInterval = 2000;
+static bool mjpeg = true;
+static bool lapseRunning = false;
+static unsigned long lastFrameDelta = 0;
 
 void setInterval(unsigned long delta)
 {
@@ -49,7 +47,11 @@ bool processLapse(unsigned long dt)
         lastFrameDelta -= frameInterval;
         camera_fb_t *fb = NULL;
         esp_err_t res = ESP_OK;
+        cfg_struct* current_cfg = get_current_cfg();
+        setFlashLED(current_cfg->flash);
+        delay(300);
         fb = esp_camera_fb_get();
+        setFlashLED(0);
         if (!fb)
         {
 	        Serial.println("Camera capture failed");
@@ -64,6 +66,7 @@ bool processLapse(unsigned long dt)
             lapseRunning = false;
             return false;
         }
+	    setFlashLED(0);
         fileIndex++;
         esp_camera_fb_return(fb);
     }

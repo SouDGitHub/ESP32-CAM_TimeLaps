@@ -1,11 +1,11 @@
 #include "cfg_eeprom.h"
 
-cfg_struct cfg;
+static cfg_struct cfg;
+static int address = 0;
 
-
-int address = 0;
-char myChar = ' ';
-
+boolean initCfgFromEEPROM();
+void storeCAMX(uint8_t n);
+void loadCAMX(uint8_t n);
 struct cfg_struct* get_current_cfg();
 void storeCfgToEEPROM();
 void restoreCfgFromEEPROM();
@@ -19,13 +19,12 @@ struct cfg_struct* get_current_cfg(){
     return &cfg;
 }
 
-boolean InitCfgFromEEPROM(){
+boolean initCfgFromEEPROM(){
     EEPROM.begin(EEPROM_SIZE);
 	restoreCfgFromEEPROM();
     if ((cfg.RestoreDefaultFalg!= RESTORE_EEPROM_DEFAULT_FLAG)||(cfg.eepromUsed==EEPROM_SIZE-1)){
         eraseEEPROM();
 		storeDefaultCfgToEEPROM();
-        //restoreCfgFromEEPROM();
         return false;
     }
     return true;
@@ -44,6 +43,8 @@ void storeCfgToEEPROM()
 	storeParameterToEEPROM((String)cfg.AutoStartTimeLapsStartUp);
 	storeParameterToEEPROM((String)cfg.AutoStartCFG);
 	storeParameterToEEPROM((String)cfg.TimeLapsDelta);
+	storeParameterToEEPROM((String)cfg.forceFlash);
+	storeParameterToEEPROM((String)cfg.flash);
 	for (n=0; n < NB_CAMERA_STORE; n++){
 		storeParameterToEEPROM((String)cfg.camera[n].framesize);
 		storeParameterToEEPROM((String)cfg.camera[n].quality);
@@ -72,6 +73,7 @@ void storeCfgToEEPROM()
 		storeParameterToEEPROM((String)cfg.camera[n].dcw);
 		storeParameterToEEPROM((String)cfg.camera[n].colorbar);
 		storeParameterToEEPROM((String)cfg.camera[n].xclk_freq_hz);
+		storeParameterToEEPROM((String)cfg.camera[n].flash);
 	}
 	EEPROM.commit();
 	cfg.eepromUsed = address;
@@ -90,6 +92,8 @@ void restoreCfgFromEEPROM()
 	cfg.AutoStartTimeLapsStartUp= atoi(restoreParameterFromEEPROM().c_str());
 	cfg.AutoStartCFG = atoi(restoreParameterFromEEPROM().c_str());
 	cfg.TimeLapsDelta= atoi(restoreParameterFromEEPROM().c_str());
+	cfg.forceFlash= atoi(restoreParameterFromEEPROM().c_str());
+	cfg.flash= atoi(restoreParameterFromEEPROM().c_str());
 	
 	for (n=0; n < NB_CAMERA_STORE; n++){
 		cfg.camera[n].framesize = atoi(restoreParameterFromEEPROM().c_str());
@@ -119,6 +123,7 @@ void restoreCfgFromEEPROM()
 		cfg.camera[n].dcw = atoi(restoreParameterFromEEPROM().c_str());
 		cfg.camera[n].colorbar = atoi(restoreParameterFromEEPROM().c_str());
 		cfg.camera[n].xclk_freq_hz = atoi(restoreParameterFromEEPROM().c_str());
+		cfg.camera[n].flash = atoi(restoreParameterFromEEPROM().c_str());
 	}
 	//LOAD CRITICAL DEFAULT PARAMETERS
 	if (cfg.AP_WiFi_ssid == ""){
@@ -128,7 +133,6 @@ void restoreCfgFromEEPROM()
 		 cfg.AP_WiFi_pw = "thereisnospoon";
 	}
 	cfg.eepromUsed = address;
-	Serial.printf("EEPROM SETTINGS USES %u/%u octets\n",cfg.eepromUsed,EEPROM_SIZE);
 }
 
 void storeDefaultCfgToEEPROM()
@@ -144,6 +148,8 @@ void storeDefaultCfgToEEPROM()
 	cfg.AutoStartTimeLapsStartUp = false;
 	cfg.AutoStartCFG = 0;
 	cfg.TimeLapsDelta = 5000;
+	cfg.forceFlash = 0;
+	cfg.flash = 0;
 	for (n=0; n < NB_CAMERA_STORE; n++){
 		cfg.camera[n].framesize = 10;
 		cfg.camera[n].quality = 10;
@@ -172,76 +178,76 @@ void storeDefaultCfgToEEPROM()
 		cfg.camera[n].dcw = 1;
 		cfg.camera[n].colorbar = 0;
 		cfg.camera[n].xclk_freq_hz = 5000000;
+		cfg.camera[n].flash = 0;
 	}	
 	storeCfgToEEPROM();
 	cfg.eepromUsed = address;
-	Serial.printf("EEPROM DEFAULTS SETTINGS USES %u/%u octets\n",cfg.eepromUsed,EEPROM_SIZE);
 }
 
-void storeCAMX(int n)
+void storeCAMX(uint8_t n)
 {
 	sensor_t *s = esp_camera_sensor_get();
-	cfg_struct* current_cfg = get_current_cfg();
-	current_cfg->camera[n].framesize      = s->status.framesize;
-	current_cfg->camera[n].quality        = s->status.quality;
-	current_cfg->camera[n].brightness     = s->status.brightness;
-	current_cfg->camera[n].contrast       = s->status.contrast;
-	current_cfg->camera[n].saturation     = s->status.saturation;
-	current_cfg->camera[n].sharpness      = s->status.sharpness;
-	current_cfg->camera[n].denoise        = s->status.denoise;
-	current_cfg->camera[n].special_effect = s->status.special_effect;
-	current_cfg->camera[n].wb_mode        = s->status.wb_mode;
-	current_cfg->camera[n].awb            = s->status.awb;
-	current_cfg->camera[n].awb_gain       = s->status.awb_gain;
-	current_cfg->camera[n].aec            = s->status.aec;
-	current_cfg->camera[n].aec2           = s->status.aec2;
-	current_cfg->camera[n].ae_level       = s->status.ae_level;
-	current_cfg->camera[n].aec_value      = s->status.aec_value;
-	current_cfg->camera[n].agc            = s->status.agc;
-	current_cfg->camera[n].agc_gain       = s->status.agc_gain;
-	current_cfg->camera[n].gainceiling    = s->status.gainceiling;
-	current_cfg->camera[n].bpc            = s->status.bpc;
-	current_cfg->camera[n].wpc            = s->status.wpc;
-	current_cfg->camera[n].raw_gma        = s->status.raw_gma;
-	current_cfg->camera[n].lenc           = s->status.lenc;
-	current_cfg->camera[n].hmirror        = s->status.hmirror;
-	current_cfg->camera[n].vflip          = s->status.vflip;
-	current_cfg->camera[n].dcw            = s->status.dcw;
-	current_cfg->camera[n].colorbar       = s->status.colorbar;
-	current_cfg->camera[n].xclk_freq_hz   = s->xclk_freq_hz;
+	cfg.camera[n].framesize      = s->status.framesize;
+	cfg.camera[n].quality        = s->status.quality;
+	cfg.camera[n].brightness     = s->status.brightness;
+	cfg.camera[n].contrast       = s->status.contrast;
+	cfg.camera[n].saturation     = s->status.saturation;
+	cfg.camera[n].sharpness      = s->status.sharpness;
+	cfg.camera[n].denoise        = s->status.denoise;
+	cfg.camera[n].special_effect = s->status.special_effect;
+	cfg.camera[n].wb_mode        = s->status.wb_mode;
+	cfg.camera[n].awb            = s->status.awb;
+	cfg.camera[n].awb_gain       = s->status.awb_gain;
+	cfg.camera[n].aec            = s->status.aec;
+	cfg.camera[n].aec2           = s->status.aec2;
+	cfg.camera[n].ae_level       = s->status.ae_level;
+	cfg.camera[n].aec_value      = s->status.aec_value;
+	cfg.camera[n].agc            = s->status.agc;
+	cfg.camera[n].agc_gain       = s->status.agc_gain;
+	cfg.camera[n].gainceiling    = s->status.gainceiling;
+	cfg.camera[n].bpc            = s->status.bpc;
+	cfg.camera[n].wpc            = s->status.wpc;
+	cfg.camera[n].raw_gma        = s->status.raw_gma;
+	cfg.camera[n].lenc           = s->status.lenc;
+	cfg.camera[n].hmirror        = s->status.hmirror;
+	cfg.camera[n].vflip          = s->status.vflip;
+	cfg.camera[n].dcw            = s->status.dcw;
+	cfg.camera[n].colorbar       = s->status.colorbar;
+	cfg.camera[n].xclk_freq_hz   = s->xclk_freq_hz;
+	cfg.camera[n].flash   		  = cfg.flash;
 	Serial.printf("Save config N° %u \n",n);
 }
 
-void loadCAMX(int n)
+void loadCAMX(uint8_t n)
 {
 	sensor_t *s = esp_camera_sensor_get();
-	cfg_struct* current_cfg = get_current_cfg();
-	s->set_framesize(s, (framesize_t)current_cfg->camera[n].framesize);
-	s->set_quality(s, current_cfg->camera[n].quality);
-	s->set_brightness(s, current_cfg->camera[n].brightness);
-	s->set_contrast(s, current_cfg->camera[n].contrast);
-	s->set_saturation(s, current_cfg->camera[n].saturation);
+	s->set_framesize(s, (framesize_t)cfg.camera[n].framesize);
+	s->set_quality(s, cfg.camera[n].quality);
+	s->set_brightness(s, cfg.camera[n].brightness);
+	s->set_contrast(s, cfg.camera[n].contrast);
+	s->set_saturation(s, cfg.camera[n].saturation);
 	//sharpness
 	//denoise
-	s->set_special_effect(s, current_cfg->camera[n].special_effect);
-	s->set_wb_mode(s, current_cfg->camera[n].wb_mode);
-	s->set_whitebal(s, current_cfg->camera[n].awb);
-	s->set_awb_gain(s, current_cfg->camera[n].awb_gain);
-	s->set_exposure_ctrl(s, current_cfg->camera[n].aec);
-	s->set_aec2(s, current_cfg->camera[n].aec2);
-	s->set_ae_level(s, current_cfg->camera[n].ae_level);
-	s->set_aec_value(s, current_cfg->camera[n].aec_value);
-	s->set_gain_ctrl(s, current_cfg->camera[n].agc);
-	s->set_agc_gain(s, current_cfg->camera[n].agc_gain);
-	s->set_gainceiling(s, (gainceiling_t)current_cfg->camera[n].gainceiling);
-	s->set_bpc(s, current_cfg->camera[n].bpc);
-	s->set_wpc(s, current_cfg->camera[n].wpc);
-	s->set_raw_gma(s, current_cfg->camera[n].raw_gma);
-	s->set_lenc(s, current_cfg->camera[n].lenc);
-	s->set_hmirror(s, current_cfg->camera[n].hmirror);
-	s->set_vflip(s, current_cfg->camera[n].vflip);
-	s->set_dcw(s, current_cfg->camera[n].dcw);
-	s->set_colorbar(s, current_cfg->camera[n].colorbar);
+	s->set_special_effect(s, cfg.camera[n].special_effect);
+	s->set_wb_mode(s, cfg.camera[n].wb_mode);
+	s->set_whitebal(s, cfg.camera[n].awb);
+	s->set_awb_gain(s, cfg.camera[n].awb_gain);
+	s->set_exposure_ctrl(s, cfg.camera[n].aec);
+	s->set_aec2(s, cfg.camera[n].aec2);
+	s->set_ae_level(s, cfg.camera[n].ae_level);
+	s->set_aec_value(s, cfg.camera[n].aec_value);
+	s->set_gain_ctrl(s, cfg.camera[n].agc);
+	s->set_agc_gain(s, cfg.camera[n].agc_gain);
+	s->set_gainceiling(s, (gainceiling_t)cfg.camera[n].gainceiling);
+	s->set_bpc(s, cfg.camera[n].bpc);
+	s->set_wpc(s, cfg.camera[n].wpc);
+	s->set_raw_gma(s, cfg.camera[n].raw_gma);
+	s->set_lenc(s, cfg.camera[n].lenc);
+	s->set_hmirror(s, cfg.camera[n].hmirror);
+	s->set_vflip(s, cfg.camera[n].vflip);
+	s->set_dcw(s, cfg.camera[n].dcw);
+	s->set_colorbar(s, cfg.camera[n].colorbar);
+	cfg.flash = cfg.camera[n].flash;
 	//xclk_freq_hz
 	Serial.printf("Load config N° %u \n",n);
 }

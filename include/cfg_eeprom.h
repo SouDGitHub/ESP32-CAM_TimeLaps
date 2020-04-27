@@ -5,7 +5,7 @@
 #define EEPROM_SIZE 512
 #define EEPROM_SEPARATOR ':'
 #define NB_CAMERA_STORE 4
-#define RESTORE_EEPROM_DEFAULT_FLAG 55
+#define RESTORE_EEPROM_DEFAULT_FLAG 35
 
 struct cfg_camera_struct{
     uint8_t framesize;//0 - 10
@@ -35,6 +35,7 @@ struct cfg_camera_struct{
     uint8_t dcw;
     uint8_t colorbar;
     int xclk_freq_hz;
+    uint8_t flash;
 } ;
 
 struct cfg_struct{
@@ -48,12 +49,14 @@ struct cfg_struct{
     boolean AutoStartTimeLapsStartUp = 0;
     uint8_t AutoStartCFG = 0;
     unsigned long TimeLapsDelta = 0;
+    uint8_t forceFlash;
+    uint8_t flash;
     cfg_camera_struct camera[NB_CAMERA_STORE];
 };
 
-struct cfg_struct* get_current_cfg();
-boolean InitCfgFromEEPROM();
-void storeCfgToEEPROM();
-void storeDefaultCfgToEEPROM();
-void storeCAMX(int n);
-void loadCAMX(int n);
+extern struct cfg_struct* get_current_cfg();
+extern boolean initCfgFromEEPROM();
+extern void storeCfgToEEPROM();
+extern void storeDefaultCfgToEEPROM();
+extern void storeCAMX(uint8_t n);
+extern void loadCAMX(uint8_t n);

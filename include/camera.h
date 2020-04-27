@@ -1,4 +1,5 @@
 #pragma once
 #include "esp_camera.h"
+#include "Arduino.h"
 
-bool initCamera();
+extern bool initCamera();
