@@ -1,4 +1,11 @@
 #include "cfg_eeprom.h"
+#include "Arduino.h"
+#include "EEPROM.h"
+#include "esp_camera.h"
+#include "debug.h"
+
+#define EEPROM_SEPARATOR ':'
+#define RESTORE_EEPROM_DEFAULT_FLAG 55
 
 static cfg_struct cfg;
 static int address = 0;
@@ -44,7 +51,9 @@ void storeCfgToEEPROM()
 	storeParameterToEEPROM((String)cfg.AutoStartCFG);
 	storeParameterToEEPROM((String)cfg.TimeLapsDelta);
 	storeParameterToEEPROM((String)cfg.forceFlash);
+	storeParameterToEEPROM((String)cfg.forceFlashThresh);
 	storeParameterToEEPROM((String)cfg.flash);
+	storeParameterToEEPROM((String)cfg.flashThresh);
 	for (n=0; n < NB_CAMERA_STORE; n++){
 		storeParameterToEEPROM((String)cfg.camera[n].framesize);
 		storeParameterToEEPROM((String)cfg.camera[n].quality);
@@ -74,7 +83,17 @@ void storeCfgToEEPROM()
 		storeParameterToEEPROM((String)cfg.camera[n].colorbar);
 		storeParameterToEEPROM((String)cfg.camera[n].xclk_freq_hz);
 		storeParameterToEEPROM((String)cfg.camera[n].flash);
+		storeParameterToEEPROM((String)cfg.camera[n].flashThresh);
 	}
+	for (n=0; n < NB_COORD_STORE; n++){
+		storeParameterToEEPROM((String)cfg.servoCoord[n].xPos);
+		storeParameterToEEPROM((String)cfg.servoCoord[n].yPos);
+	}
+	storeParameterToEEPROM((String)cfg.servoXInv);
+	storeParameterToEEPROM((String)cfg.servoYInv);
+	storeParameterToEEPROM((String)cfg.useTrajectory);
+	storeParameterToEEPROM((String)cfg.nbPicTrajectory);
+
 	EEPROM.commit();
 	cfg.eepromUsed = address;
 }
@@ -93,7 +112,9 @@ void restoreCfgFromEEPROM()
 	cfg.AutoStartCFG = atoi(restoreParameterFromEEPROM().c_str());
 	cfg.TimeLapsDelta= atoi(restoreParameterFromEEPROM().c_str());
 	cfg.forceFlash= atoi(restoreParameterFromEEPROM().c_str());
+	cfg.forceFlashThresh= atoi(restoreParameterFromEEPROM().c_str());
 	cfg.flash= atoi(restoreParameterFromEEPROM().c_str());
+	cfg.flashThresh= atoi(restoreParameterFromEEPROM().c_str());
 	
 	for (n=0; n < NB_CAMERA_STORE; n++){
 		cfg.camera[n].framesize = atoi(restoreParameterFromEEPROM().c_str());
@@ -124,7 +145,17 @@ void restoreCfgFromEEPROM()
 		cfg.camera[n].colorbar = atoi(restoreParameterFromEEPROM().c_str());
 		cfg.camera[n].xclk_freq_hz = atoi(restoreParameterFromEEPROM().c_str());
 		cfg.camera[n].flash = atoi(restoreParameterFromEEPROM().c_str());
+		cfg.camera[n].flashThresh = atoi(restoreParameterFromEEPROM().c_str());
 	}
+	for (n=0; n < NB_COORD_STORE; n++){
+		cfg.servoCoord[n].xPos =  atoi(restoreParameterFromEEPROM().c_str());
+		cfg.servoCoord[n].yPos =  atoi(restoreParameterFromEEPROM().c_str());
+	}
+	cfg.servoXInv =  atoi(restoreParameterFromEEPROM().c_str());
+	cfg.servoYInv =  atoi(restoreParameterFromEEPROM().c_str());
+	cfg.useTrajectory =  atoi(restoreParameterFromEEPROM().c_str());
+	cfg.nbPicTrajectory =  atoi(restoreParameterFromEEPROM().c_str());
+	
 	//LOAD CRITICAL DEFAULT PARAMETERS
 	if (cfg.AP_WiFi_ssid == ""){
 		 cfg.AP_WiFi_ssid = "ESP32_CAM";
@@ -147,9 +178,11 @@ void storeDefaultCfgToEEPROM()
 	cfg.StartAPOnly = true;
 	cfg.AutoStartTimeLapsStartUp = false;
 	cfg.AutoStartCFG = 0;
-	cfg.TimeLapsDelta = 5000;
+	cfg.TimeLapsDelta = 5;
 	cfg.forceFlash = 0;
+	cfg.forceFlashThresh = 0;
 	cfg.flash = 0;
+	cfg.flashThresh = 0;
 	for (n=0; n < NB_CAMERA_STORE; n++){
 		cfg.camera[n].framesize = 10;
 		cfg.camera[n].quality = 10;
@@ -179,7 +212,16 @@ void storeDefaultCfgToEEPROM()
 		cfg.camera[n].colorbar = 0;
 		cfg.camera[n].xclk_freq_hz = 5000000;
 		cfg.camera[n].flash = 0;
+		cfg.camera[n].flashThresh = 0;
 	}	
+	for (n=0; n < NB_COORD_STORE; n++){
+		cfg.servoCoord[n].xPos = 0;
+		cfg.servoCoord[n].yPos = 0;
+	}
+	cfg.servoXInv = 0;
+	cfg.servoYInv = 0;
+	cfg.useTrajectory = 0;
+	cfg.nbPicTrajectory = 200;
 	storeCfgToEEPROM();
 	cfg.eepromUsed = address;
 }
@@ -215,7 +257,7 @@ void storeCAMX(uint8_t n)
 	cfg.camera[n].colorbar       = s->status.colorbar;
 	cfg.camera[n].xclk_freq_hz   = s->xclk_freq_hz;
 	cfg.camera[n].flash   		  = cfg.flash;
-	Serial.printf("Save config N° %u \n",n);
+	cfg.camera[n].flashThresh	  = cfg.flashThresh;
 }
 
 void loadCAMX(uint8_t n)
@@ -248,8 +290,8 @@ void loadCAMX(uint8_t n)
 	s->set_dcw(s, cfg.camera[n].dcw);
 	s->set_colorbar(s, cfg.camera[n].colorbar);
 	cfg.flash = cfg.camera[n].flash;
+	cfg.flashThresh = cfg.camera[n].flashThresh;
 	//xclk_freq_hz
-	Serial.printf("Load config N° %u \n",n);
 }
 
 ////////           private method         /////////

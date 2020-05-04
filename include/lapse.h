@@ -1,11 +1,6 @@
-//#pragma once
-#include "flashLED.h"
-#include "Arduino.h"
-#include "camera.h"
-#include <stdio.h>
-#include "file.h"
+#include "arduino.h"
 
-extern void setInterval(unsigned long delta);
+extern void setTimeLapsInterval(uint16_t delta);
 extern bool startLapse();
-extern bool stopLapse();
+extern void stopLapse();
 extern bool processLapse(unsigned long dt);

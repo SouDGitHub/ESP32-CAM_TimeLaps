@@ -1,4 +1,5 @@
 #include "camera.h"
+
 // WARNING!!! Make sure that you have either selected ESP32 Wrover Module, or another board which has PSRAM enabled
 // Select camera model
 //#define CAMERA_MODEL_WROVER_KIT
@@ -6,8 +7,10 @@
 //#define CAMERA_MODEL_M5STACK_PSRAM
 //#define CAMERA_MODEL_M5STACK_WIDE
 #define CAMERA_MODEL_AI_THINKER
-#include "camera_pins.h"
 
+#include "camera_pins.h"
+#include "Arduino.h"
+#include "debug.h"
 
 bool initCamera()
 {
@@ -55,7 +58,7 @@ bool initCamera()
 	esp_err_t err = esp_camera_init(&config);
 	if (err != ESP_OK)
 	{
-		Serial.printf("Camera init failed with error 0x%x", err);
+		if(USE_SERIAL) Serial.printf("Camera init failed with error 0x%x", err);
 		return false;
 	}
 

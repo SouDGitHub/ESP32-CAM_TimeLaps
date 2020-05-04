@@ -1,16 +1,22 @@
 #include "lapse.h"
 #include "cfg_eeprom.h"
-
-static unsigned long fileIndex = 0;
-static unsigned long lapseIndex = 0;
+#include "flashLED.h"
+#include "Arduino.h"
+#include "camera.h"
+#include <stdio.h>
+#include "file.h"
+#include "debug.h"
+#include "trajectory.h"
+static uint32_t fileIndex = 0;
+static uint32_t lapseIndex = 0;
 static unsigned long frameInterval = 2000;
 static bool mjpeg = true;
 static bool lapseRunning = false;
 static unsigned long lastFrameDelta = 0;
 
-void setInterval(unsigned long delta)
+void setTimeLapsInterval(uint16_t delta)
 {
-    frameInterval = delta;
+    frameInterval = (unsigned long)delta*1000;
 }
 
 bool startLapse()
@@ -32,7 +38,7 @@ bool startLapse()
 	return false;
 }
 
-bool stopLapse()
+void stopLapse()
 {
     lapseRunning = false;
 }
@@ -46,28 +52,29 @@ bool processLapse(unsigned long dt)
     {
         lastFrameDelta -= frameInterval;
         camera_fb_t *fb = NULL;
-        esp_err_t res = ESP_OK;
         cfg_struct* current_cfg = get_current_cfg();
-        setFlashLED(current_cfg->flash);
-        delay(300);
+        if(current_cfg->flash){
+            setFlashLED(current_cfg->flashThresh);
+            delay(FLASH_PRESHOOT_DURATION_MS);
+        }
         fb = esp_camera_fb_get();
         setFlashLED(0);
         if (!fb)
         {
-	        Serial.println("Camera capture failed");
+	        if(USE_SERIAL) Serial.println("Camera capture failed");
 	        return false;
         }
 
         char path[32];
         sprintf(path, "/lapse%03d/pic%05d.jpg", lapseIndex, fileIndex);
-        Serial.println(path);
+        if(USE_SERIAL) Serial.println(path);
         if(!writeFile(path, (const unsigned char *)fb->buf, fb->len))
         {
             lapseRunning = false;
             return false;
         }
-	    setFlashLED(0);
         fileIndex++;
+        processX2Trajcetory();
         esp_camera_fb_return(fb);
     }
     return true;
